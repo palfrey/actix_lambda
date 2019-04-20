@@ -1,0 +1,9 @@
+https://forums.aws.amazon.com/thread.jspa?threadID=294551 - CF doesn't support lambda targets
+https://aws.amazon.com/blogs/opensource/rust-runtime-for-aws-lambda/
+https://www.andrew-thorburn.com/cross-compiling-a-simple-rust-web-app/#openssl - yay openssl
+
+https://lifthrasiir.github.io/rustlog/why-is-a-rust-executable-large.html
+cargo build --release --target x86_64-unknown-linux-musl --no-default-features --features lambda
+x86_64-linux-musl-strip ./target/x86_64-unknown-linux-musl/release/dawn
+
+reqwest = {optional=true, version="0.9", features=["rustls-tls"], default-features=false}
