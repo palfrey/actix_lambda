@@ -1,5 +1,7 @@
 actix_lambda
 ============
+[![Build Status](https://travis-ci.com/palfrey/actix_lambda.svg?branch=master)](https://travis-ci.com/palfrey/actix_lambda)
+
 Helper libraries for running/testing Actix servers under [AWS Lambda](https://aws.amazon.com/lambda/)
 
 Currently, it just consists of a simple helper function `run` that will run the entire app as a lambda function, and `lambda_test` which will feed in a single [Application Load Balancer](https://docs.aws.amazon.com/elasticloadbalancing/latest/application/introduction.html) event into the Lambda app.
