@@ -1,6 +1,7 @@
 actix_lambda
 ============
 [![Build Status](https://travis-ci.com/palfrey/actix_lambda.svg?branch=master)](https://travis-ci.com/palfrey/actix_lambda)
+[![Crates.io](https://img.shields.io/crates/v/actix_lambda.svg)](https://crates.io/crates/actix_lambda)
 
 Helper libraries for running/testing Actix servers under [AWS Lambda](https://aws.amazon.com/lambda/)
 
