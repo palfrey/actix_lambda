@@ -1,6 +1,6 @@
 //! # actix_lambda
 //! Runs your actix-web app as a lambda app that will respond to Application Load Balancer requests
-//! ```
+//! ```ignore
 //! fn root_handler(request: HttpRequest) -> &'static str {
 //!     return "Hello world";
 //! }
