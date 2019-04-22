@@ -1,4 +1,6 @@
-troposphere
+# Needed until there's a version with https://github.com/cloudtools/troposphere/pull/1376
+# Something > 2.4.6
+-e git+https://github.com/cloudtools/troposphere.git@8259f0a44d47b77bf9a2aa37a1c8d0ae7b73091c#egg=troposphere
 boto3
 
 pip-tools

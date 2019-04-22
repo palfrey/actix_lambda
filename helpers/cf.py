@@ -1,6 +1,6 @@
 from troposphere import Ref, Template, Output
 from troposphere.iam import Role, Policy
-from troposphere.awslambda import Function, Code, Environment
+from troposphere.awslambda import Function, Code, Environment, Permission
 from troposphere import GetAtt, Join
 import troposphere.elasticloadbalancingv2 as elb
 import troposphere.ec2 as ec2
@@ -121,7 +121,24 @@ app_function = t.add_resource(Function(
 
 ec2_client = boto3.client('ec2')
 subnets = ec2_client.describe_subnets()["Subnets"]
-vpc = ec2_client.describe_vpcs()["Vpcs"][0]
+
+targetGroup = t.add_resource(elb.TargetGroup(
+    "TargetGroup",
+    TargetType="lambda",
+    Targets=[elb.TargetDescription(
+        Id=GetAtt(app_function, 'Arn')
+    )],
+    DependsOn="InvokePermission"
+))
+
+t.add_resource(Permission(
+    "InvokePermission",
+    Action="lambda:InvokeFunction",
+    FunctionName=GetAtt(app_function, 'Arn'),
+    Principal="elasticloadbalancing.amazonaws.com",
+    #SourceArn=Ref(targetGroup) # This would create a creation loop
+    #SourceAccount=Ref('AWS::AccountId')
+))
 
 # Add the application ELB
 ApplicationElasticLB = t.add_resource(elb.LoadBalancer(
@@ -129,6 +146,17 @@ ApplicationElasticLB = t.add_resource(elb.LoadBalancer(
     Name="ApplicationElasticLB",
     Scheme="internet-facing",
     Subnets=[x["SubnetId"] for x in subnets]
+))
+
+t.add_resource(elb.Listener(
+    "Listener",
+    LoadBalancerArn=Ref(ApplicationElasticLB),
+    Port=80,
+    Protocol="HTTP",
+    DefaultActions=[elb.Action(
+        Type="forward",
+        TargetGroupArn=Ref(targetGroup)
+    )]
 ))
 
 t.add_output([
@@ -177,63 +205,5 @@ else:
 
 stack = cf.describe_stacks(StackName=stack_name)["Stacks"][0]
 outputs = dict([(x["OutputKey"], x["OutputValue"]) for x in stack["Outputs"]])
-lb = outputs["LoadbalancerArn"]
-
-print("Setting up listener")
-elb_client = boto3.client('elbv2')
-existing_target_groups = elb_client.describe_target_groups()["TargetGroups"]
-existing_target_groups = dict([(x["TargetGroupName"],x) for x in existing_target_groups])
-
-if stack_name != app_name:
-    name = "%s-%s" % (stack_name, app_name)
-else:
-    name = app_name
-group = elb_client.create_target_group(
-    Name=name,
-    TargetType="lambda",
-)
-
-lambda_client = boto3.client('lambda')
-targetGroupArn = group["TargetGroups"][0]["TargetGroupArn"]
-statement_id = "%s-permissions" % name
-funcArn = outputs["AppFunctionArn"]
-try:
-    policy = lambda_client.get_policy(
-        FunctionName=funcArn
-    )
-    statements = json.loads(policy["Policy"])["Statement"]
-    if statement_id in [x["Sid"] for x in statements]:
-        lambda_client.remove_permission(
-            FunctionName=funcArn,
-            StatementId=statement_id
-        )
-except botocore.exceptions.ClientError as e:
-    if e.response['Error']['Code'] == 'ResourceNotFoundException' and e.operation_name == 'GetPolicy':
-        pass # ignore, because we'd only be deleting it
-    else:
-        raise
-lambda_client.add_permission(
-    Action="lambda:InvokeFunction",
-    FunctionName=funcArn,
-    Principal="elasticloadbalancing.amazonaws.com",
-    SourceArn=targetGroupArn,
-    StatementId=statement_id
-)
-targets = elb_client.register_targets(
-    TargetGroupArn=targetGroupArn,
-    Targets=[{
-        'Id': funcArn
-    }]
-)
-
-rule = elb_client.create_listener(
-    LoadBalancerArn=outputs["LoadbalancerArn"],
-    Port=80,
-    Protocol="HTTP",
-    DefaultActions=[{
-        'Type': "forward",
-        'TargetGroupArn': targetGroupArn
-    }]
-)
 
 print(f"{app_name} is deployed at http://{outputs['LoadbalancerDNSName']}")
