@@ -57,7 +57,6 @@ pub fn run<F>(config: F)
 where
     F: Fn(&mut web::ServiceConfig) + std::marker::Sync + std::marker::Send + 'static + std::clone::Clone
 {
-    let _ = env_logger::builder().is_test(true).try_init();
     thread::spawn(move || {
         actix::run(async {
             HttpServer::new(move || App::new().configure(config.clone()))

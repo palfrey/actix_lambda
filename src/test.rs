@@ -68,9 +68,6 @@ pub fn lambda_test<F>(main_loop: F)
 where
     F: FnOnce() -> () + std::marker::Send + std::marker::Sync + 'static,
 {
-    env_logger::builder().is_test(true).init();
-    debug!("Test init");
-
     let (req_send, req_recv) = unbounded();
     let (res_send, res_recv) = unbounded();
     req_send.send(Ok((1234,
@@ -144,6 +141,7 @@ mod tests {
 
     #[test]
     pub fn test_lambda() {
+        env_logger::builder().is_test(true).init();
         crate::test::lambda_test(mainloop);
     }
 }

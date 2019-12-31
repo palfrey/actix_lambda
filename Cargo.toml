@@ -17,8 +17,10 @@ reqwest = {version="0.9", features=["rustls-tls"], default-features=false}
 crossbeam = "0.7"
 maplit = "1"
 actix-web = "2"
-actix = "*"
+actix = "0.9"
 log = "0.4"
 url = "1.7"
 serde_json = "1"
+
+[dev-dependencies]
 env_logger = "*"
