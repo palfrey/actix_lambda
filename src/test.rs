@@ -127,7 +127,7 @@ where
     env::set_var("AWS_LAMBDA_LOG_GROUP_NAME", "lg");
     env::set_var("AWS_LAMBDA_FUNCTION_MEMORY_SIZE", "128");
     env::set_var("AWS_LAMBDA_RUNTIME_API", "127.0.0.1:3456");
-    thread::spawn(move || main_loop());
+    thread::spawn(|| main_loop());
     let resp_raw = res_recv.recv().unwrap();
     let resp: alb::AlbTargetGroupResponse = serde_json::from_str(&resp_raw).unwrap();
     debug!("Response to main: {:#?}", resp);
