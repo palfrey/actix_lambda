@@ -2,9 +2,14 @@ language: rust
 
 cache: cargo
 
+env:
+  global:
+    - TOOL=
+
 matrix:
   allow_failures:
     - rust: nightly
+      env: TOOL=
   fast_finish: true
   include:
     - rust: stable
@@ -12,12 +17,12 @@ matrix:
     - rust: nightly
     - rust: 1.39.0
     - rust: nightly
-      env: CLIPPY
+      env: TOOL=CLIPPY
       script: |
           rustup toolchain install nightly --allow-downgrade --component clippy
           cargo clippy
     - rust: nightly
-      env: FMT
+      env: TOOL=FMT
       script: |
           rustup toolchain install nightly --allow-downgrade --component rustfmt
           cargo fmt
