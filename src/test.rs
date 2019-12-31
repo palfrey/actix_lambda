@@ -101,7 +101,7 @@ where
             is_base64_encoded: false,
             body: Some("request_body".to_string())
         }).unwrap()))).unwrap();
-    thread::spawn(move || {
+    thread::spawn(|| {
         actix::run(async {
             HttpServer::new(move || App::new().data(AppState { req: req_recv.clone(), res: res_send.clone() }).configure(test_app))
             .bind("0.0.0.0:3456")
@@ -125,21 +125,25 @@ where
     req_send.send(Err(())).unwrap();
 }
 
+#[cfg(test)]
+mod tests {
+    use actix_web::{web, HttpRequest, HttpResponse};
 
-fn root_handler(_request: HttpRequest) -> HttpResponse {
-     return HttpResponse::Ok().body("Hello world");
-}
+    fn root_handler(_request: HttpRequest) -> HttpResponse {
+        return HttpResponse::Ok().body("Hello world");
+    }
 
-fn config(cfg: &mut web::ServiceConfig) {
-     cfg.route("/", web::get().to(root_handler));
-     // More route handlers
-}
+    fn config(cfg: &mut web::ServiceConfig) {
+        cfg.route("/", web::get().to(root_handler));
+        // More route handlers
+    }
 
-fn mainloop() {
-    crate::run(config);
-}
+    fn mainloop() {
+        crate::run(config);
+    }
 
-#[test]
-pub fn test_lambda() {
-    lambda_test(mainloop);
+    #[test]
+    pub fn test_lambda() {
+        crate::test::lambda_test(mainloop);
+    }
 }
