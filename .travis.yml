@@ -16,6 +16,11 @@ matrix:
       script: |
           rustup toolchain install nightly --allow-downgrade --component clippy
           cargo clippy
+    - rust: nightly
+      env: FMT
+      script: |
+          rustup toolchain install nightly --allow-downgrade --component rustfmt
+          cargo fmt
 
 script:
 - cargo build
