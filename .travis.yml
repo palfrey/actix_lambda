@@ -1,14 +1,21 @@
 language: rust
-rust:
-  - stable
-  - beta
-  - nightly
+
 cache: cargo
 
 matrix:
   allow_failures:
     - rust: nightly
   fast_finish: true
+  include:
+    - rust: stable
+    - rust: beta
+    - rust: nightly
+    - rust: 1.39.0
+    - rust: nightly
+      env: CLIPPY
+      script: |
+          rustup toolchain install nightly --allow-downgrade --component clippy
+          cargo clippy
 
 script:
 - cargo build
