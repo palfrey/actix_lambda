@@ -4,12 +4,12 @@ cache: cargo
 
 env:
   global:
-    - TOOL=
+    - TOOL=NONE
 
 matrix:
   allow_failures:
     - rust: nightly
-      env: TOOL=
+      env: TOOL=NONE
   fast_finish: true
   include:
     - rust: stable
