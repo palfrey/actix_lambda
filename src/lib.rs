@@ -27,13 +27,13 @@
 
 pub mod test;
 
-use actix_web::{HttpServer, App, web};
+use actix;
+use actix_web::{web, App, HttpServer};
 use lambda_http::{lambda, RequestExt};
 use log::debug;
 use reqwest::{Client, RedirectPolicy};
 use std::thread;
 use url::percent_encoding::percent_decode;
-use actix;
 
 ///
 /// Runs your actix-web app as a lambda app that will respond to Application Load Balancer requests.
@@ -55,15 +55,18 @@ use actix;
 /// }
 pub fn run<F>(config: F)
 where
-    F: Fn(&mut web::ServiceConfig) + std::marker::Sync + std::marker::Send + 'static + std::clone::Clone
+    F: Fn(&mut web::ServiceConfig) + std::marker::Sync + std::marker::Send + 'static + std::clone::Clone,
 {
     thread::spawn(move || {
         actix::run(async {
             HttpServer::new(move || App::new().configure(config.clone()))
-            .bind("0.0.0.0:3457")
-            .unwrap()
-            .run().await.unwrap()
-        }).unwrap();
+                .bind("0.0.0.0:3457")
+                .unwrap()
+                .run()
+                .await
+                .unwrap()
+        })
+        .unwrap();
     });
     // Don't do any redirects because otherwise we lose data between requests
     let client = Client::builder()

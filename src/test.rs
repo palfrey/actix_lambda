@@ -1,6 +1,6 @@
 //! Test helpers for actix_lambda applications
-use actix_web::{web, HttpServer, App, HttpResponse, HttpRequest};
 use actix;
+use actix_web::{web, App, HttpRequest, HttpResponse, HttpServer};
 use aws_lambda_events::event::alb;
 use crossbeam::{unbounded, Receiver, Sender};
 use log::{debug, warn};
@@ -14,33 +14,38 @@ struct AppState {
 }
 
 fn test_app(cfg: &mut web::ServiceConfig) {
-    cfg.route("/2018-06-01/runtime/invocation/1234/response", web::post().to(|(body, data): (String, web::Data<AppState>)| {
-        debug!("Response body: {}", body);
-        data.res.send(body).unwrap();
-        HttpResponse::Ok()
-    }))
-    .route("/2018-06-01/runtime/invocation/next", web::get().to(|data: web::Data<AppState>| {
-        let (id, body) = match data.req.clone().recv().unwrap() {
-            Ok(val) => val,
-            Err(_) => {
-                debug!("Parking");
-                actix::System::current().stop();
-                thread::park();
-                unimplemented!();
-            }
-        };
-        debug!("Got req: {}", id);
-        HttpResponse::Ok()
-            .header("Lambda-Runtime-Aws-Request-Id", id.to_string())
-            .header("Lambda-Runtime-Invoked-Function-Arn", "an-arn")
-            .header("Lambda-Runtime-Deadline-Ms", "1000")
-            .json(body)
-    }))
-    .service(web::scope("/").default_service(
-        web::route().to(|r: HttpRequest| {
-            warn!("{:?}", r);
-            HttpResponse::NotFound()
-        })));
+    cfg.route(
+        "/2018-06-01/runtime/invocation/1234/response",
+        web::post().to(|(body, data): (String, web::Data<AppState>)| {
+            debug!("Response body: {}", body);
+            data.res.send(body).unwrap();
+            HttpResponse::Ok()
+        }),
+    )
+    .route(
+        "/2018-06-01/runtime/invocation/next",
+        web::get().to(|data: web::Data<AppState>| {
+            let (id, body) = match data.req.clone().recv().unwrap() {
+                Ok(val) => val,
+                Err(_) => {
+                    debug!("Parking");
+                    actix::System::current().stop();
+                    thread::park();
+                    unimplemented!();
+                }
+            };
+            debug!("Got req: {}", id);
+            HttpResponse::Ok()
+                .header("Lambda-Runtime-Aws-Request-Id", id.to_string())
+                .header("Lambda-Runtime-Invoked-Function-Arn", "an-arn")
+                .header("Lambda-Runtime-Deadline-Ms", "1000")
+                .json(body)
+        }),
+    )
+    .service(web::scope("/").default_service(web::route().to(|r: HttpRequest| {
+        warn!("{:?}", r);
+        HttpResponse::NotFound()
+    })));
 }
 
 ///
@@ -100,13 +105,21 @@ where
         }).unwrap()))).unwrap();
     thread::spawn(|| {
         actix::run(async {
-            HttpServer::new(move || App::new().data(AppState { req: req_recv.clone(), res: res_send.clone() }).configure(test_app))
+            HttpServer::new(move || {
+                App::new()
+                    .data(AppState {
+                        req: req_recv.clone(),
+                        res: res_send.clone(),
+                    })
+                    .configure(test_app)
+            })
             .bind("0.0.0.0:3456")
             .unwrap()
             .run()
             .await
             .unwrap()
-        }).unwrap();
+        })
+        .unwrap();
     });
     env::set_var("AWS_LAMBDA_FUNCTION_NAME", "foo");
     env::set_var("AWS_LAMBDA_FUNCTION_VERSION", "1");
