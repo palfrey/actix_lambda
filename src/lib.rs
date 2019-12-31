@@ -1,18 +1,19 @@
 //! # actix_lambda
 //! Runs your actix-web app as a lambda app that will respond to Application Load Balancer requests
 //! ```ignore
-//! fn root_handler(request: HttpRequest) -> &'static str {
-//!     return "Hello world";
+//! use actix_web::{http::Method, HttpRequest, HttpResponse, web};
+//!
+//! fn root_handler(request: HttpRequest) -> HttpResponse {
+//!     return HttpResponse::Ok().body("Hello world");
 //! }
 //!
-//! fn app() -> App {
-//!     return App::new()
-//!         .route("/", Method::GET, root_handler);
-//!         // More route handlers
+//! fn config(cfg: &mut web::ServiceConfig) {
+//!      cfg.route("/", web::get().to(root_handler));
+//!      // More route handlers
 //! }
 //!
 //! fn main() {
-//!     actix_lambda::run(app);
+//!     actix_lambda::run(config);
 //! }
 //!
 //! #[cfg(test)]
@@ -26,7 +27,8 @@
 
 pub mod test;
 
-use actix_web::{server, App};
+use actix;
+use actix_web::{web, App, HttpServer};
 use lambda_http::{lambda, RequestExt};
 use log::debug;
 use reqwest::{Client, RedirectPolicy};
@@ -37,30 +39,34 @@ use url::percent_encoding::percent_decode;
 /// Runs your actix-web app as a lambda app that will respond to Application Load Balancer requests.
 ///
 /// ```ignore
-/// use actix_web::{App, http::Method, HttpRequest};
+/// use actix_web::{http::Method, HttpRequest, HttpResponse, web};
 ///
-/// fn root_handler(request: HttpRequest) -> &'static str {
-///     return "Hello world";
+/// fn root_handler(request: HttpRequest) -> HttpResponse {
+///     return HttpResponse::Ok().body("Hello world");
 /// }
 ///
-/// fn app() -> App {
-///     return App::new()
-///         .route("/", Method::GET, root_handler);
-///         // More route handlers
+/// fn config(cfg: &mut web::ServiceConfig) {
+///      cfg.route("/", web::get().to(root_handler));
+///      // More route handlers
 /// }
 ///
 /// fn main() {
-///     actix_lambda::run(app);
+///     actix_lambda::run(config);
 /// }
-pub fn run<F>(app: F)
+pub fn run<F>(config: F)
 where
-    F: Fn() -> App + std::marker::Sync + std::marker::Send + 'static + std::clone::Clone,
+    F: Fn(&mut web::ServiceConfig) + std::marker::Sync + std::marker::Send + 'static + std::clone::Clone,
 {
-    thread::spawn(move || {
-        server::new(move || app().finish())
-            .bind("0.0.0.0:3457")
-            .unwrap()
-            .run()
+    thread::spawn(|| {
+        actix::run(async {
+            HttpServer::new(move || App::new().configure(config.clone()))
+                .bind("0.0.0.0:3457")
+                .unwrap()
+                .run()
+                .await
+                .unwrap()
+        })
+        .unwrap();
     });
     // Don't do any redirects because otherwise we lose data between requests
     let client = Client::builder()
@@ -106,12 +112,14 @@ where
         debug!("New req: {:?}", req);
         let mut res = req.send().unwrap();
         debug!("Res: {:?}", res);
+        let content = res.text().unwrap();
+        debug!("Content: '{}'", content);
         let mut lambda_res = lambda_http::Response::builder();
         lambda_res.status(res.status());
         for (key, value) in res.headers() {
             lambda_res.header(key, value);
         }
         debug!("lambda_res: {:?}", lambda_res);
-        Ok(lambda_res.body(res.text().unwrap()).unwrap())
+        Ok(lambda_res.body(content).unwrap())
     });
 }
