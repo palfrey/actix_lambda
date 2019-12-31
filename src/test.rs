@@ -14,9 +14,10 @@ struct AppState {
 }
 
 fn test_app(cfg: &mut web::ServiceConfig) {
-    cfg.route("/2018-06-01/runtime/invocation/1234/response", web::post().to(|body: String| {
+    cfg.route("/2018-06-01/runtime/invocation/1234/response", web::post().to(|(body, data): (String, web::Data<AppState>)| {
         debug!("Response body: {}", body);
-        HttpResponse::Ok().body(body)
+        data.res.send(body).unwrap();
+        HttpResponse::Ok()
     }))
     .route("/2018-06-01/runtime/invocation/next", web::get().to(|data: web::Data<AppState>| {
         let (id, body) = match data.req.clone().recv().unwrap() {
