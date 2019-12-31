@@ -1,21 +1,23 @@
 language: rust
-
+os: linux
 cache: cargo
+
+rust:
+  - stable
+  - beta
+  - nightly
+  - 1.39.0
 
 env:
   global:
     - TOOL=NONE
 
-matrix:
+jobs:
   allow_failures:
     - rust: nightly
       env: TOOL=NONE
   fast_finish: true
   include:
-    - rust: stable
-    - rust: beta
-    - rust: nightly
-    - rust: 1.39.0
     - rust: nightly
       env: TOOL=CLIPPY
       script: |
