@@ -2,6 +2,7 @@ actix_lambda
 ============
 [![Build Status](https://travis-ci.com/palfrey/actix_lambda.svg?branch=master)](https://travis-ci.com/palfrey/actix_lambda)
 [![Crates.io](https://img.shields.io/crates/v/actix_lambda.svg)](https://crates.io/crates/actix_lambda)
+[![MSRV: 1.39.0](https://flat.badgen.net/badge/MSRV/1.39.0/purple)](https://blog.rust-lang.org/2019/11/07/Rust-1.39.0.html)
 
 Helper libraries for running/testing Actix servers under [AWS Lambda](https://aws.amazon.com/lambda/)
 
@@ -11,22 +12,24 @@ Usage
 -----
 
 ```rust
-fn app() -> App {
-    return App::new()
-        .route("/", Method::GET, root_handler);
-        // More route handlers
+use actix_web::{http::Method, HttpRequest, HttpResponse, web};
+
+fn root_handler(request: HttpRequest) -> HttpResponse {
+    return HttpResponse::Ok().body("Hello world");
+}
+
+fn config(cfg: &mut web::ServiceConfig) {
+     cfg.route("/", web::get().to(root_handler));
+     // More route handlers
 }
 
 fn main() {
-    actix_lambda::run(app);
+    actix_lambda::run(config);
 }
 
-#[cfg(test)]
-mod tests {
-    #[test]
-    fn lambda_test() {
-        actix_lambda::test::lambda_test(main);
-    }
+#[test]
+fn lambda_test() {
+    actix_lambda::test::lambda_test(main);
 }
 ```
 

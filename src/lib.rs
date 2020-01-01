@@ -12,7 +12,7 @@
 //!      // More route handlers
 //! }
 //!
-//! fn main() {
+//! fn mainloop() {
 //!     actix_lambda::run(config);
 //! }
 //!
@@ -20,7 +20,7 @@
 //! mod tests {
 //!     #[test]
 //!     fn lambda_test() {
-//!         actix_lambda::test::lambda_test(main);
+//!         actix_lambda::test::lambda_test(mainloop);
 //!     }
 //! }
 //! ```
@@ -50,9 +50,8 @@ use url::percent_encoding::percent_decode;
 ///      // More route handlers
 /// }
 ///
-/// fn main() {
-///     actix_lambda::run(config);
-/// }
+/// actix_lambda::run(config);
+///
 pub fn run<F>(config: F)
 where
     F: Fn(&mut web::ServiceConfig) + std::marker::Sync + std::marker::Send + 'static + std::clone::Clone,

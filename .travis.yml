@@ -1,14 +1,30 @@
 language: rust
+os: linux
+cache: cargo
+
 rust:
   - stable
   - beta
-  - nightly
-cache: cargo
+  - 1.39.0
 
-matrix:
+jobs:
   allow_failures:
     - rust: nightly
+      env: TOOL=NONE
   fast_finish: true
+  include:
+    - rust: nightly
+      env: TOOL=NONE
+    - rust: nightly
+      env: TOOL=CLIPPY
+      script: |
+          rustup toolchain install nightly --allow-downgrade --component clippy
+          cargo clippy -- -D clippy::all
+    - rust: nightly
+      env: TOOL=FMT
+      script: |
+          rustup toolchain install nightly --allow-downgrade --component rustfmt
+          cargo fmt -- --check
 
 script:
 - cargo build
