@@ -27,7 +27,7 @@ jobs:
       env: TOOL=FMT
       script: |
           rustup toolchain install nightly --allow-downgrade --component rustfmt
-          cargo fmt
+          cargo fmt -- --check
 
 script:
 - cargo build
