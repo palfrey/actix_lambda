@@ -12,22 +12,24 @@ Usage
 -----
 
 ```rust
-fn app() -> App {
-    return App::new()
-        .route("/", Method::GET, root_handler);
-        // More route handlers
+use actix_web::{http::Method, HttpRequest, HttpResponse, web};
+
+fn root_handler(request: HttpRequest) -> HttpResponse {
+    return HttpResponse::Ok().body("Hello world");
+}
+
+fn config(cfg: &mut web::ServiceConfig) {
+     cfg.route("/", web::get().to(root_handler));
+     // More route handlers
 }
 
 fn main() {
-    actix_lambda::run(app);
+    actix_lambda::run(config);
 }
 
-#[cfg(test)]
-mod tests {
-    #[test]
-    fn lambda_test() {
-        actix_lambda::test::lambda_test(main);
-    }
+#[test]
+fn lambda_test() {
+    actix_lambda::test::lambda_test(main);
 }
 ```
 
