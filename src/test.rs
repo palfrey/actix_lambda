@@ -1,5 +1,6 @@
 //! Test helpers for actix_lambda applications
-use actix_web::{actix::System, http, server, App, HttpRequest, HttpResponse, State};
+use actix;
+use actix_web::{web, App, HttpRequest, HttpResponse, HttpServer};
 use aws_lambda_events::event::alb;
 use crossbeam::{unbounded, Receiver, Sender};
 use log::{debug, warn};
@@ -12,68 +13,65 @@ struct AppState {
     res: Sender<String>,
 }
 
-fn test_app(req: Receiver<Result<(i32, serde_json::Value), ()>>, res: Sender<String>) -> App<AppState> {
-    App::with_state(AppState { req, res })
-        .resource("/2018-06-01/runtime/invocation/1234/response", |r| {
-            r.method(http::Method::POST)
-                .with(|(body, state): (String, State<AppState>)| {
-                    debug!("Response body: {}", body);
-                    state.res.send(body).unwrap();
-                    HttpResponse::Ok()
-                })
-        })
-        .resource("/2018-06-01/runtime/invocation/next", |r| {
-            r.method(http::Method::GET).with(|state: State<AppState>| {
-                let (id, body) = match state.req.clone().recv().unwrap() {
-                    Ok(val) => val,
-                    Err(_) => {
-                        System::current().stop();
-                        thread::park();
-                        unimplemented!();
-                    }
-                };
-                debug!("Got req: {}", id);
-                HttpResponse::Ok()
-                    .header("Lambda-Runtime-Aws-Request-Id", id.to_string())
-                    .header("Lambda-Runtime-Invoked-Function-Arn", "an-arn")
-                    .header("Lambda-Runtime-Deadline-Ms", "1000")
-                    .json(body)
-            })
-        })
-        .default_resource(|r| {
-            r.route().with(|(r, body): (HttpRequest<AppState>, String)| {
-                warn!("{:?}", r);
-                warn!("Body: {}", body);
-                HttpResponse::NotFound()
-            })
-        })
+fn test_app(cfg: &mut web::ServiceConfig) {
+    cfg.route(
+        "/2018-06-01/runtime/invocation/1234/response",
+        web::post().to(|(body, data): (String, web::Data<AppState>)| {
+            debug!("Response body: {}", body);
+            data.res.send(body).unwrap();
+            HttpResponse::Ok()
+        }),
+    )
+    .route(
+        "/2018-06-01/runtime/invocation/next",
+        web::get().to(|data: web::Data<AppState>| {
+            let (id, body) = match data.req.clone().recv().unwrap() {
+                Ok(val) => val,
+                Err(_) => {
+                    debug!("Parking");
+                    actix::System::current().stop();
+                    thread::park();
+                    unimplemented!();
+                }
+            };
+            debug!("Got req: {}", id);
+            HttpResponse::Ok()
+                .header("Lambda-Runtime-Aws-Request-Id", id.to_string())
+                .header("Lambda-Runtime-Invoked-Function-Arn", "an-arn")
+                .header("Lambda-Runtime-Deadline-Ms", "1000")
+                .json(body)
+        }),
+    )
+    .service(web::scope("/").default_service(web::route().to(|r: HttpRequest| {
+        warn!("{:?}", r);
+        HttpResponse::NotFound()
+    })));
 }
 
 ///
 /// Tests your actix-web app as a lambda app that will respond to Application Load Balancer requests
 ///
 /// ```rust
-/// use actix_web::{App, http::Method, HttpRequest};
+/// use actix_web::{http::Method, HttpRequest, HttpResponse, web};
 ///
-/// fn root_handler(request: HttpRequest) -> &'static str {
-///     return "Hello world";
+/// fn root_handler(request: HttpRequest) -> HttpResponse {
+///     return HttpResponse::Ok().body("Hello world");
 /// }
 ///
-/// fn app() -> App {
-///     return App::new()
-///         .route("/", Method::GET, root_handler);
-///         // More route handlers
+/// fn config(cfg: &mut web::ServiceConfig) {
+///      cfg.route("/", web::get().to(root_handler));
+///      // More route handlers
 /// }
 ///
 /// fn mainloop() {
-///     actix_lambda::run(app);
+///     actix_lambda::run(config);
 /// }
 /// # use actix_lambda::test::lambda_test;
 /// lambda_test(mainloop)
 ///
 pub fn lambda_test<F>(main_loop: F)
 where
-    F: FnOnce() -> () + std::marker::Send + 'static,
+    F: FnOnce() -> () + std::marker::Send + std::marker::Sync + 'static,
 {
     let (req_send, req_recv) = unbounded();
     let (res_send, res_recv) = unbounded();
@@ -105,11 +103,23 @@ where
             is_base64_encoded: false,
             body: Some("request_body".to_string())
         }).unwrap()))).unwrap();
-    thread::spawn(move || {
-        server::new(move || test_app(req_recv.clone(), res_send.clone()).finish())
+    thread::spawn(|| {
+        actix::run(async {
+            HttpServer::new(move || {
+                App::new()
+                    .data(AppState {
+                        req: req_recv.clone(),
+                        res: res_send.clone(),
+                    })
+                    .configure(test_app)
+            })
             .bind("0.0.0.0:3456")
             .unwrap()
             .run()
+            .await
+            .unwrap()
+        })
+        .unwrap();
     });
     env::set_var("AWS_LAMBDA_FUNCTION_NAME", "foo");
     env::set_var("AWS_LAMBDA_FUNCTION_VERSION", "1");
@@ -123,4 +133,28 @@ where
     debug!("Response to main: {:#?}", resp);
     // shutdown
     req_send.send(Err(())).unwrap();
+}
+
+#[cfg(test)]
+mod tests {
+    use actix_web::{web, HttpRequest, HttpResponse};
+
+    fn root_handler(_request: HttpRequest) -> HttpResponse {
+        return HttpResponse::Ok().body("Hello world");
+    }
+
+    fn config(cfg: &mut web::ServiceConfig) {
+        cfg.route("/", web::get().to(root_handler));
+        // More route handlers
+    }
+
+    fn mainloop() {
+        crate::run(config);
+    }
+
+    #[test]
+    pub fn test_lambda() {
+        env_logger::builder().is_test(true).init();
+        crate::test::lambda_test(mainloop);
+    }
 }
