@@ -5,12 +5,7 @@ cache: cargo
 rust:
   - stable
   - beta
-  - nightly
   - 1.39.0
-
-env:
-  global:
-    - TOOL=NONE
 
 jobs:
   allow_failures:
@@ -18,6 +13,8 @@ jobs:
       env: TOOL=NONE
   fast_finish: true
   include:
+    - rust: nightly
+      env: TOOL=NONE
     - rust: nightly
       env: TOOL=CLIPPY
       script: |
