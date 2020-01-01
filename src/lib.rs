@@ -31,9 +31,9 @@ use actix;
 use actix_web::{web, App, HttpServer};
 use lambda_http::{lambda, RequestExt};
 use log::debug;
+use percent_encoding::percent_decode;
 use reqwest::{Client, RedirectPolicy};
 use std::thread;
-use percent_encoding::percent_decode;
 
 ///
 /// Runs your actix-web app as a lambda app that will respond to Application Load Balancer requests.
