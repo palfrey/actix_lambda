@@ -22,7 +22,7 @@ jobs:
       env: TOOL=CLIPPY
       script: |
           rustup toolchain install nightly --allow-downgrade --component clippy
-          cargo clippy
+          cargo clippy -- -D clippy::all
     - rust: nightly
       env: TOOL=FMT
       script: |
