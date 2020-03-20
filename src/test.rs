@@ -1,5 +1,4 @@
 //! Test helpers for actix_lambda applications
-use actix;
 use actix_web::{web, App, HttpRequest, HttpResponse, HttpServer};
 use aws_lambda_events::event::alb;
 use crossbeam::{unbounded, Receiver, Sender};
