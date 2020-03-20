@@ -27,7 +27,6 @@
 
 pub mod test;
 
-use actix;
 use actix_web::{web, App, HttpServer};
 use lambda_http::{lambda, RequestExt};
 use log::debug;

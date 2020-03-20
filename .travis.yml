@@ -10,20 +10,18 @@ rust:
 jobs:
   allow_failures:
     - rust: nightly
-      env: TOOL=NONE
   fast_finish: true
   include:
     - rust: nightly
-      env: TOOL=NONE
-    - rust: nightly
+    - rust: stable
       env: TOOL=CLIPPY
       script: |
-          rustup toolchain install nightly --allow-downgrade --component clippy
+          rustup component add clippy
           cargo clippy -- -D clippy::all
-    - rust: nightly
+    - rust: stable
       env: TOOL=FMT
       script: |
-          rustup toolchain install nightly --allow-downgrade --component rustfmt
+          rustup component add rustfmt
           cargo fmt -- --check
 
 script:
