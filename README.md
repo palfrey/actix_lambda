@@ -1,6 +1,6 @@
 actix_lambda
 ============
-[![Build Status](https://travis-ci.com/palfrey/actix_lambda.svg?branch=master)](https://travis-ci.com/palfrey/actix_lambda)
+[![Build Status](https://travis-ci.com/palfrey/actix_lambda.svg?branch=main)](https://travis-ci.com/palfrey/actix_lambda)
 [![Crates.io](https://img.shields.io/crates/v/actix_lambda.svg)](https://crates.io/crates/actix_lambda)
 [![MSRV: 1.39.0](https://flat.badgen.net/badge/MSRV/1.39.0/purple)](https://blog.rust-lang.org/2019/11/07/Rust-1.39.0.html)
 
