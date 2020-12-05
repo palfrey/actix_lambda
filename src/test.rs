@@ -68,6 +68,7 @@ fn test_app(cfg: &mut web::ServiceConfig) {
 /// # use actix_lambda::test::lambda_test;
 /// lambda_test(mainloop)
 ///
+#[allow(clippy::unused_unit)] // type doesn't work without it!
 pub fn lambda_test<F>(main_loop: F)
 where
     F: FnOnce() -> () + std::marker::Send + std::marker::Sync + 'static,
